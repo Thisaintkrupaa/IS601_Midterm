@@ -1,6 +1,7 @@
 ########################
 # Exception Hierarchy  #
 ########################
+
 class CalculatorError(Exception):
     pass
 

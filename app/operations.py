@@ -15,7 +15,7 @@ class Operation(ABC):
         pass  # pragma: no cover
 
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
-        pass  # pragma: no cover
+        pass
 
     def __str__(self) -> str:
         return self.__class__.__name__
@@ -79,7 +79,9 @@ class Root(Operation):
         self.validate_operands(a, b)
         return Decimal(pow(float(a), 1 / float(b)))
 
+
 class Modulus(Operation):
+
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if b == 0:
@@ -91,6 +93,7 @@ class Modulus(Operation):
 
 
 class IntegerDivision(Operation):
+
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if b == 0:
@@ -102,6 +105,7 @@ class IntegerDivision(Operation):
 
 
 class Percentage(Operation):
+
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if b == 0:
@@ -113,6 +117,7 @@ class Percentage(Operation):
 
 
 class AbsoluteDifference(Operation):
+
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
         return abs(a - b)
@@ -130,10 +135,9 @@ class OperationFactory:
         'modulus': Modulus,
         'int_divide': IntegerDivision,
         'percent': Percentage,
-        'abs_diff': AbsoluteDifference,
+        'abs_diff': AbsoluteDifference
     }
-    
-    
+
     @classmethod
     def register_operation(cls, name: str, operation_class: type) -> None:
         if not issubclass(operation_class, Operation):
