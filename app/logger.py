@@ -1,45 +1,49 @@
 ########################
-# Logger    #
+# Logger               #
 ########################
 
-
-from __future__ import annotations
-
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
+from app.calculator_config import CalculatorConfig
+
 
 class Logger:
-    """
-    Logger wrapper for the calculator.
-    Keeps compatibility with existing code that uses logging.* directly.
-    """
 
-    def __init__(self, log_file: Optional[Path] = None, encoding: str = "utf-8") -> None:
-        self._logger = logging.getLogger("calculator")
-        self._logger.setLevel(logging.INFO)
+    def __init__(self, config: Optional[CalculatorConfig] = None):
+        self.config = config or CalculatorConfig()
+        self.config.validate()
+        self.logger = logging.getLogger("calculator")
+        self._setup_logger()
 
-        # Prevent duplicate handlers
-        if self._logger.handlers:
+    def _setup_logger(self) -> None:
+        log_level_str = os.getenv("CALCULATOR_LOG_LEVEL", "INFO").upper()
+        level = getattr(logging, log_level_str, logging.INFO)
+
+        self.config.log_dir.mkdir(parents=True, exist_ok=True)
+        log_file: Path = self.config.log_file.resolve()
+
+        self.logger.setLevel(level)
+        self.logger.propagate = False
+
+        if self.logger.handlers:
             return
 
-        if log_file is None:
-            log_file = Path("logs") / "calculator.log"
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-        log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(str(log_file), encoding=self.config.default_encoding)
+        file_handler.setLevel(level)
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
 
-        fmt = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.WARNING)
+        stream_handler.setFormatter(formatter)
+        self.logger.addHandler(stream_handler)
 
-        fh = logging.FileHandler(log_file, encoding=encoding)
-        fh.setLevel(logging.INFO)
-        fh.setFormatter(fmt)
-        self._logger.addHandler(fh)
+        self.logger.info(f"Logging initialized at: {log_file}")
 
-        sh = logging.StreamHandler()
-        sh.setLevel(logging.WARNING)
-        sh.setFormatter(fmt)
-        self._logger.addHandler(sh)
-
-    def get(self) -> logging.Logger:
-        return self._logger
+    def get_logger(self) -> logging.Logger:
+        return self.logger
