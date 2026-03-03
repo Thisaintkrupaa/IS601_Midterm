@@ -1,6 +1,7 @@
 ########################
 # Calculator Config    #
 ########################
+
 from dataclasses import dataclass
 from decimal import Decimal
 from numbers import Number
@@ -9,6 +10,7 @@ import os
 from typing import Optional
 
 from dotenv import load_dotenv
+
 from app.exceptions import ConfigurationError
 
 load_dotenv()
@@ -85,7 +87,6 @@ class CalculatorConfig:
             str(self.log_dir / "calculator.log")
         )).resolve()
 
-    @property
     def validate(self) -> None:
         if self.max_history_size <= 0:
             raise ConfigurationError("max_history_size must be positive")
@@ -93,14 +94,11 @@ class CalculatorConfig:
             raise ConfigurationError("precision must be positive")
         if self.max_input_value <= 0:
             raise ConfigurationError("max_input_value must be positive")
-    
 
-    # ensure dirs exist (robustness)
-    self.log_dir.mkdir(parents=True, exist_ok=True)
-    self.history_dir.mkdir(parents=True, exist_ok=True)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.history_dir.mkdir(parents=True, exist_ok=True)
 
-    # validate encoding
-    try:
-        "test".encode(self.default_encoding)
-    except LookupError:
-        raise ConfigurationError("default_encoding is not a valid encoding")
+        try:
+            "test".encode(self.default_encoding)
+        except LookupError:
+            raise ConfigurationError("default_encoding is not a valid encoding")
