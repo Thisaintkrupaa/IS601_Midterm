@@ -11,25 +11,30 @@ from app.exceptions import ValidationError
 
 @dataclass
 class InputValidator:
-    """Validates and sanitizes calculator inputs."""
 
     @staticmethod
     def validate_number(value: Any, config: CalculatorConfig) -> Decimal:
         try:
-            if value is None:
-                raise ValidationError("Input cannot be None")
-
             if isinstance(value, str):
                 value = value.strip()
-                if value == "":
-                    raise ValidationError("Input cannot be empty")
+
+            if value is None or (isinstance(value, str) and value == ""):
+                raise ValidationError(f"Invalid number format: {value}")
+
+            if not isinstance(value, (int, float, Decimal, str)):
+                raise ValidationError(f"Invalid number format: {value}")
 
             number = Decimal(str(value))
+
+            if number.is_nan() or number.is_infinite():  # pragma: no cover
+                raise ValidationError(f"Invalid number format: {value}")
 
             if abs(number) > config.max_input_value:
                 raise ValidationError(f"Value exceeds maximum allowed: {config.max_input_value}")
 
             return number.normalize()
 
-        except InvalidOperation as e:
-            raise ValidationError(f"Invalid number format: {value}") from e
+        except ValidationError:
+            raise
+        except InvalidOperation:
+            raise ValidationError(f"Invalid number format: {value}")

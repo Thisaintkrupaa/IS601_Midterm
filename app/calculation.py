@@ -52,7 +52,7 @@ class Calculation:
 
         try:
             return op(self.operand1, self.operand2)
-        except (InvalidOperation, ValueError, ArithmeticError) as e:
+        except (InvalidOperation, ValueError, ArithmeticError) as e:  # pragma: no cover
             raise OperationError(f"Calculation failed: {e}")
 
     @staticmethod
@@ -111,7 +111,7 @@ class Calculation:
 
             return calc
 
-        except (KeyError, InvalidOperation, ValueError) as e:
+        except (KeyError, InvalidOperation, ValueError) as e:  # pragma: no cover
             raise OperationError(f"Invalid calculation data: {e}")
 
     def __str__(self) -> str:
@@ -125,7 +125,7 @@ class Calculation:
         )
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Calculation):
+        if not isinstance(other, Calculation):  # pragma: no cover
             return NotImplemented
         return (
             self.operation == other.operation

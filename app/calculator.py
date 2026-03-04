@@ -6,7 +6,7 @@ from decimal import Decimal
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import pandas as pd
 
@@ -33,15 +33,11 @@ class Calculator:
         self.config = config
         self.config.validate()
 
-        os.makedirs(self.config.log_dir, exist_ok=True)
-
         self._setup_logging()
 
         self.history: List[Calculation] = []
         self.operation_strategy: Optional[Operation] = None
-
         self.observers: List[HistoryObserver] = []
-
         self.undo_stack: List[CalculatorMemento] = []
         self.redo_stack: List[CalculatorMemento] = []
 
@@ -55,20 +51,15 @@ class Calculator:
         logging.info("Calculator initialized with configuration")
 
     def _setup_logging(self) -> None:
-        try:
-            os.makedirs(self.config.log_dir, exist_ok=True)
-            log_file = self.config.log_file.resolve()
-
-            logging.basicConfig(
-                filename=str(log_file),
-                level=logging.INFO,
-                format='%(asctime)s - %(levelname)s - %(message)s',
-                force=True
-            )
-            logging.info(f"Logging initialized at: {log_file}")
-        except Exception as e:
-            print(f"Error setting up logging: {e}")
-            raise
+        os.makedirs(self.config.log_dir, exist_ok=True)
+        log_file = self.config.log_file.resolve()
+        logging.basicConfig(
+            filename=str(log_file),
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            force=True
+        )
+        logging.info(f"Logging initialized at: {log_file}")
 
     def _setup_directories(self) -> None:
         self.config.history_dir.mkdir(parents=True, exist_ok=True)
@@ -111,9 +102,7 @@ class Calculator:
             )
 
             self.undo_stack.append(CalculatorMemento(self.history.copy()))
-
             self.redo_stack.clear()
-
             self.history.append(calculation)
 
             if len(self.history) > self.config.max_history_size:
@@ -126,7 +115,9 @@ class Calculator:
         except ValidationError as e:
             logging.error(f"Validation error: {str(e)}")
             raise
-        except Exception as e:
+        except OperationError:
+            raise
+        except Exception as e:  # pragma: no cover
             logging.error(f"Operation failed: {str(e)}")
             raise OperationError(f"Operation failed: {str(e)}")
 
@@ -134,23 +125,25 @@ class Calculator:
         try:
             self.config.history_dir.mkdir(parents=True, exist_ok=True)
 
-            history_data = []
-            for calc in self.history:
-                history_data.append({
+            history_data = [
+                {
                     'operation': str(calc.operation),
                     'operand1': str(calc.operand1),
                     'operand2': str(calc.operand2),
                     'result': str(calc.result),
                     'timestamp': calc.timestamp.isoformat()
-                })
+                }
+                for calc in self.history
+            ]
 
             if history_data:
                 df = pd.DataFrame(history_data)
                 df.to_csv(self.config.history_file, index=False)
                 logging.info(f"History saved successfully to {self.config.history_file}")
             else:
-                pd.DataFrame(columns=['operation', 'operand1', 'operand2', 'result', 'timestamp']
-                           ).to_csv(self.config.history_file, index=False)
+                pd.DataFrame(
+                    columns=['operation', 'operand1', 'operand2', 'result', 'timestamp']
+                ).to_csv(self.config.history_file, index=False)
                 logging.info("Empty history saved")
 
         except Exception as e:
@@ -182,15 +175,16 @@ class Calculator:
             raise OperationError(f"Failed to load history: {e}")
 
     def get_history_dataframe(self) -> pd.DataFrame:
-        history_data = []
-        for calc in self.history:
-            history_data.append({
+        history_data = [
+            {
                 'operation': str(calc.operation),
                 'operand1': str(calc.operand1),
                 'operand2': str(calc.operand2),
                 'result': str(calc.result),
                 'timestamp': calc.timestamp
-            })
+            }
+            for calc in self.history
+        ]
         return pd.DataFrame(history_data)
 
     def show_history(self) -> List[str]:

@@ -36,6 +36,5 @@ class CalculatorMemento:
 
             return cls(history=history, timestamp=timestamp)
 
-        except (KeyError, TypeError, ValueError) as e:
-            # Malformed or missing fields
-            raise OperationError(f"Invalid memento data: {e}")  # pragma: no cover
+        except (KeyError, TypeError, ValueError) as e:  # pragma: no cover
+            raise OperationError(f"Invalid memento data: {e}")

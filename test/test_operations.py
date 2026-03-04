@@ -1,0 +1,270 @@
+import pytest
+from decimal import Decimal
+from typing import Any, Dict, Type
+
+from app.exceptions import ValidationError
+from app.operations import (
+    Operation,
+    Addition,
+    Subtraction,
+    Multiplication,
+    Division,
+    Power,
+    Root,
+    Modulus,
+    IntegerDivision,
+    Percentage,
+    AbsoluteDifference,
+    OperationFactory,
+)
+
+
+class TestOperation:
+
+    def test_str_representation(self):
+        class TestOp(Operation):
+            def execute(self, a: Decimal, b: Decimal) -> Decimal:
+                return a
+
+        assert str(TestOp()) == "TestOp"
+
+
+class BaseOperationTest:
+
+    operation_class: Type[Operation]
+    valid_test_cases: Dict[str, Dict[str, Any]]
+    invalid_test_cases: Dict[str, Dict[str, Any]]
+
+    def test_valid_operations(self):
+        operation = self.operation_class()
+        for name, case in self.valid_test_cases.items():
+            a = Decimal(str(case["a"]))
+            b = Decimal(str(case["b"]))
+            expected = Decimal(str(case["expected"]))
+            result = operation.execute(a, b)
+            assert result == expected, f"Failed case: {name}"
+
+    def test_invalid_operations(self):
+        operation = self.operation_class()
+        for name, case in self.invalid_test_cases.items():
+            a = Decimal(str(case["a"]))
+            b = Decimal(str(case["b"]))
+            error = case.get("error", ValidationError)
+            error_message = case.get("message", "")
+
+            with pytest.raises(error, match=error_message):
+                operation.execute(a, b)
+
+
+class TestAddition(BaseOperationTest):
+
+    operation_class = Addition
+    valid_test_cases = {
+        "positive_numbers": {"a": "5", "b": "3", "expected": "8"},
+        "negative_numbers": {"a": "-5", "b": "-3", "expected": "-8"},
+        "mixed_signs": {"a": "-5", "b": "3", "expected": "-2"},
+        "zero_sum": {"a": "5", "b": "-5", "expected": "0"},
+        "decimals": {"a": "5.5", "b": "3.3", "expected": "8.8"},
+        "large_numbers": {"a": "1e10", "b": "1e10", "expected": "20000000000"},
+    }
+    invalid_test_cases = {}
+
+
+class TestSubtraction(BaseOperationTest):
+
+    operation_class = Subtraction
+    valid_test_cases = {
+        "positive_numbers": {"a": "5", "b": "3", "expected": "2"},
+        "negative_numbers": {"a": "-5", "b": "-3", "expected": "-2"},
+        "mixed_signs": {"a": "-5", "b": "3", "expected": "-8"},
+        "zero_result": {"a": "5", "b": "5", "expected": "0"},
+        "decimals": {"a": "5.5", "b": "3.3", "expected": "2.2"},
+        "large_numbers": {"a": "1e10", "b": "1e9", "expected": "9000000000"},
+    }
+    invalid_test_cases = {}
+
+
+class TestMultiplication(BaseOperationTest):
+
+    operation_class = Multiplication
+    valid_test_cases = {
+        "positive_numbers": {"a": "5", "b": "3", "expected": "15"},
+        "negative_numbers": {"a": "-5", "b": "-3", "expected": "15"},
+        "mixed_signs": {"a": "-5", "b": "3", "expected": "-15"},
+        "multiply_by_zero": {"a": "5", "b": "0", "expected": "0"},
+        "decimals": {"a": "5.5", "b": "3.3", "expected": "18.15"},
+        "large_numbers": {"a": "1e5", "b": "1e5", "expected": "10000000000"},
+    }
+    invalid_test_cases = {}
+
+
+class TestDivision(BaseOperationTest):
+
+    operation_class = Division
+    valid_test_cases = {
+        "positive_numbers": {"a": "6", "b": "2", "expected": "3"},
+        "negative_numbers": {"a": "-6", "b": "-2", "expected": "3"},
+        "mixed_signs": {"a": "-6", "b": "2", "expected": "-3"},
+        "decimals": {"a": "5.5", "b": "2", "expected": "2.75"},
+        "divide_zero": {"a": "0", "b": "5", "expected": "0"},
+    }
+    invalid_test_cases = {
+        "divide_by_zero": {
+            "a": "5",
+            "b": "0",
+            "error": ValidationError,
+            "message": "Division by zero is not allowed"
+        },
+    }
+
+
+class TestPower(BaseOperationTest):
+
+    operation_class = Power
+    valid_test_cases = {
+        "positive_base_and_exponent": {"a": "2", "b": "3", "expected": "8"},
+        "zero_exponent": {"a": "5", "b": "0", "expected": "1"},
+        "one_exponent": {"a": "5", "b": "1", "expected": "5"},
+        "decimal_base": {"a": "2.5", "b": "2", "expected": "6.25"},
+        "zero_base": {"a": "0", "b": "5", "expected": "0"},
+    }
+    invalid_test_cases = {
+        "negative_exponent": {
+            "a": "2",
+            "b": "-3",
+            "error": ValidationError,
+            "message": "Negative exponents not supported"
+        },
+    }
+
+
+class TestRoot(BaseOperationTest):
+
+    operation_class = Root
+    valid_test_cases = {
+        "square_root": {"a": "9", "b": "2", "expected": "3"},
+        "cube_root": {"a": "27", "b": "3", "expected": "3"},
+        "fourth_root": {"a": "16", "b": "4", "expected": "2"},
+        "decimal_root": {"a": "2.25", "b": "2", "expected": "1.5"},
+    }
+    invalid_test_cases = {
+        "negative_base": {
+            "a": "-9",
+            "b": "2",
+            "error": ValidationError,
+            "message": "Cannot calculate root of negative number"
+        },
+        "zero_root": {
+            "a": "9",
+            "b": "0",
+            "error": ValidationError,
+            "message": "Zero root is undefined"
+        },
+    }
+
+
+class TestModulus(BaseOperationTest):
+
+    operation_class = Modulus
+    valid_test_cases = {
+        "basic_modulus": {"a": "10", "b": "3", "expected": "1"},
+        "zero_modulus": {"a": "0", "b": "3", "expected": "0"},
+    }
+    invalid_test_cases = {
+        "modulus_by_zero": {
+            "a": "10",
+            "b": "0",
+            "error": ValidationError,
+            "message": "Modulus by zero is not allowed"
+        },
+    }
+
+
+class TestIntegerDivision(BaseOperationTest):
+
+    operation_class = IntegerDivision
+    valid_test_cases = {
+        "basic_int_divide": {"a": "10", "b": "3", "expected": "3"},
+        "exact_divide": {"a": "9", "b": "3", "expected": "3"},
+        "zero_dividend": {"a": "0", "b": "3", "expected": "0"},
+    }
+    invalid_test_cases = {
+        "int_divide_by_zero": {
+            "a": "10",
+            "b": "0",
+            "error": ValidationError,
+            "message": "Integer division by zero is not allowed"
+        },
+    }
+
+
+class TestPercentage(BaseOperationTest):
+
+    operation_class = Percentage
+    valid_test_cases = {
+        "basic_percent": {"a": "1", "b": "4", "expected": "25"},
+        "full_percent": {"a": "5", "b": "5", "expected": "100"},
+        "zero_percent": {"a": "0", "b": "5", "expected": "0"},
+    }
+    invalid_test_cases = {
+        "percent_by_zero": {
+            "a": "1",
+            "b": "0",
+            "error": ValidationError,
+            "message": "Percentage division by zero is not allowed"
+        },
+    }
+
+
+class TestAbsoluteDifference(BaseOperationTest):
+
+    operation_class = AbsoluteDifference
+    valid_test_cases = {
+        "abs_diff_positive": {"a": "2", "b": "10", "expected": "8"},
+        "abs_diff_reverse": {"a": "10", "b": "2", "expected": "8"},
+        "abs_diff_equal": {"a": "5", "b": "5", "expected": "0"},
+    }
+    invalid_test_cases = {}
+
+
+class TestOperationFactory:
+
+    def test_create_valid_operations(self):
+        operation_map = {
+            'add': Addition,
+            'subtract': Subtraction,
+            'multiply': Multiplication,
+            'divide': Division,
+            'power': Power,
+            'root': Root,
+            'modulus': Modulus,
+            'int_divide': IntegerDivision,
+            'percent': Percentage,
+            'abs_diff': AbsoluteDifference,
+        }
+
+        for op_name, op_class in operation_map.items():
+            operation = OperationFactory.create_operation(op_name)
+            assert isinstance(operation, op_class)
+            operation = OperationFactory.create_operation(op_name.upper())
+            assert isinstance(operation, op_class)
+
+    def test_create_invalid_operation(self):
+        with pytest.raises(ValueError, match="Unknown operation: invalid_op"):
+            OperationFactory.create_operation("invalid_op")
+
+    def test_register_valid_operation(self):
+        class NewOperation(Operation):
+            def execute(self, a: Decimal, b: Decimal) -> Decimal:
+                return a
+
+        OperationFactory.register_operation("new_op", NewOperation)
+        operation = OperationFactory.create_operation("new_op")
+        assert isinstance(operation, NewOperation)
+
+    def test_register_invalid_operation(self):
+        class InvalidOperation:
+            pass
+
+        with pytest.raises(TypeError, match="Operation class must inherit"):
+            OperationFactory.register_operation("invalid", InvalidOperation)

@@ -163,3 +163,16 @@ def test_from_dict_result_mismatch(caplog):
 
     assert "Loaded calculation result" in caplog.text
     assert "differs from computed result" in caplog.text
+
+def test_repr():
+    calc = Calculation(operation="Addition", operand1=Decimal("2"), operand2=Decimal("3"))
+    r = repr(calc)
+    assert "Addition" in r
+    assert "operand1=2" in r
+    assert "result=5" in r
+
+
+
+def test_str():
+    calc = Calculation(operation="Addition", operand1=Decimal("2"), operand2=Decimal("3"))
+    assert str(calc) == "Addition(2, 3) = 5"
